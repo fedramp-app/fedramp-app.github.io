@@ -13,7 +13,6 @@
   <script src="fedramp-controls.js"></script>
   <script src="elasticlunr.js"></script>
   <script>
-    elasticlunr.tokenizer.setSeperator(/[\s]+/);
     elasticlunr.Configuration.prototype.addAllFields2UserConfig = function (bool, expand, fields) {
       fields.forEach(function (field) {
         this.config[field] = {
