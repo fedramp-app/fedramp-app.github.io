@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>FedRAMP Controls Search</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="holiday.css">
+</head>
+
+<body>
+  <script src="fedramp-controls.js"></script>
+  <script src="elasticlunr.js"></script>
+  <script>
+    elasticlunr.tokenizer.setSeperator(/[\s]+/);
+    elasticlunr.Configuration.prototype.addAllFields2UserConfig = function (bool, expand, fields) {
+      fields.forEach(function (field) {
+        this.config[field] = {
+          boost: 1,
+          bool: bool,
+          expand: expand
+        };
+      }, this);
+      this.config['search_supertitle'] = {boost: 8, bool: "AND", expand: expand};
+      this.config['search_title'] = {boost: 4, bool: "AND", expand: expand};
+      this.config['search_supercorpus'] = {boost: 2, bool: "AND", expand: expand};
+      this.config['search_corpus'] = {boost: 1, bool: "AND", expand: expand};
+    };
+    elasticlunr.Configuration.prototype.buildUserConfig = function (config, fields) {
+      var global_bool = "AND";
+      var global_expand = false;
+
+      this.reset();
+      if ('bool' in config) {
+        global_bool = config['bool'] || global_bool;
+      }
+
+      if ('expand' in config) {
+        global_expand = config['expand'] || global_expand;
+      }
+
+      if ('fields' in config) {
+        for (var field in config['fields']) {
+          if (fields.indexOf(field) > -1) {
+            var field_config = config['fields'][field];
+            var field_expand = global_expand;
+            if (field_config.expand != undefined) {
+              field_expand = field_config.expand;
+            }
+
+            this.config[field] = {
+              boost: (field_config.boost || field_config.boost === 0) ? field_config.boost : 1,
+              bool: field_config.bool || global_bool,
+              expand: field_expand
+            };
+          } else {
+            elasticlunr.utils.warn('field name in user configuration not found in index instance fields');
+          }
+        }
+        this.config['search_supertitle'] = {boost: 8, bool: "AND", expand: global_expand};
+        this.config['search_title'] = {boost: 4, bool: "AND", expand: global_expand};
+        this.config['search_supercorpus'] = {boost: 2, bool: "AND", expand: global_expand};
+        this.config['search_corpus'] = {boost: 1, bool: "AND", expand: global_expand};
+      } else {
+        this.addAllFields2UserConfig(global_bool, global_expand, fields);
+      }
+    };
+    var index = elasticlunr(function () {
+      this.addField('search_supertitle');
+      this.addField('search_title');
+      this.addField('search_supercorpus');
+      this.addField('search_corpus');
+      this.setRef('index');
+    });
+    all_controls.forEach(function(item) {index.addDoc(item);});
+
+    function do_search() {
+      var query = document.getElementById("search_field").value;
+      var result = index.search(query, {});
+      var result_html = '';
+      result.sort(function(a, b) {return (b.score - a.score);});
+      result.forEach(
+        function(ref_item) {
+          var item = all_controls[ref_item['ref']];
+          var baseline_tag = [];
+          if (item['baselines'].length == 0) {
+            baseline_tag.push('No Baseline');
+          }
+          if (item['baselines'].includes('LOW')) {
+            baseline_tag.push('L');
+          }
+          if (item['baselines'].includes('MODERATE')) {
+            baseline_tag.push('M');
+          }
+          if (item['baselines'].includes('HIGH')) {
+            baseline_tag.push('H');
+          }
+          var baseline_text = '[' + baseline_tag.join(',') + ']';
+          result_html += '<div><h5 class="control_family">'+item['family']+'</h5><h3 class="control_title">'+item['control_id']+' '+item['control_title']+' <small>'+baseline_text+'</small></h3></div>';
+          result_html += '<div><h4>Control</h4><blockquote><p>'+item['description']+'</p></blockquote></div>';
+          if ('supplemental_guidance' in item) {
+            result_html += '<div><h4>Supplemental Guidance</h4><blockquote><p>'+item['supplemental_guidance']+'</p></blockquote></div>';
+          }
+          if ('fedramp_low_parameter' in item) {
+            result_html += '<div><h4>FedRAMP-Defined Parameter, Low</h4><p>'+item['fedramp_low_parameter']+'</p></div>';
+          }
+          if ('fedramp_low_additional' in item) {
+            result_html += '<div><h4>Additional FedRAMP Requirements and Guidance, Low</h4><p>'+item['fedramp_low_additional']+'</p></div>';
+          }
+          if ('fedramp_moderate_parameter' in item) {
+            result_html += '<div><h4>FedRAMP-Defined Parameter, Moderate</h4><p>'+item['fedramp_moderate_parameter']+'</p></div>';
+          }
+          if ('fedramp_moderate_additional' in item) {
+            result_html += '<div><h4>Additional FedRAMP Requirements and Guidance, Moderate</h4><p>'+item['fedramp_moderate_additional']+'</p></div>';
+          }
+          if ('fedramp_high_parameter' in item) {
+            result_html += '<div><h4>FedRAMP-Defined Parameter, High</h4><p>'+item['fedramp_high_parameter']+'</p></div>';
+          }
+          if ('fedramp_high_additional' in item) {
+            result_html += '<div><h4>Additional FedRAMP Requirements and Guidance, High</h4><p>'+item['fedramp_high_additional']+'</p></div>';
+          }
+          if (item['related'] && item['related'].length > 0) {
+            result_html += '<div><h4>Related</h4><p>'+item['related'].join(', ')+'</p></div>';
+          }
+          result_html += '<hr>';
+      });
+      document.getElementById("results_main").innerHTML = result_html;
+    }
+  </script>
+
+  <span style="width:initial; height:20px; padding:0; background-color:blue; color: white">Test HTML Banner</span>
+
+  <div id="search_main">
+    <label for="search_field">Search FedRAMP: </label>
+    <input type="text" id="search_field" name="search_field">
+  </div>
+  <div id="results_main">
+  </div>
+
+  <script>
+    // Based on https://stackoverflow.com/a/5926782
+    var typingTimer;
+    var doneTypingInterval = 10;
+    var myInput = document.getElementById('search_field');
+
+    myInput.addEventListener('keyup', () => {
+        if (myInput.value) {
+          typingTimer = do_search();
+        } else {
+          console.log("empty");
+        }
+    });
+  </script>
+</body>
+</html>
