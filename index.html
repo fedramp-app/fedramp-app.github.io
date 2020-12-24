@@ -124,11 +124,40 @@
     }
 
     var all_controls_html = '';
-    function display_all_items() {
-      if (all_controls_html == '') {
-        all_controls_html = render_items(all_controls);
+    var low_controls_html = '';
+    var moderate_controls_html = '';
+    var high_controls_html = '';
+    function display_baseline_items(baseline) {
+      if (baseline == '' || baseline == 'all') {
+        if (all_controls_html == '') {
+          all_controls_html = render_items(all_controls);
+        }
+        document.getElementById("results_main").innerHTML = all_controls_html;
+      } else if (baseline == 'low') {
+        if (low_controls_html == '') {
+          low_controls_html = render_items(
+            all_controls.filter(function(item) {
+              return item['baselines'].includes('LOW');
+          }));
+        }
+        document.getElementById("results_main").innerHTML = low_controls_html;
+      } else if (baseline == 'moderate') {
+        if (moderate_controls_html == '') {
+          moderate_controls_html = render_items(
+            all_controls.filter(function(item) {
+              return item['baselines'].includes('MODERATE');
+          }));
+        }
+        document.getElementById("results_main").innerHTML = moderate_controls_html;
+      } else if (baseline == 'high') {
+        if (high_controls_html == '') {
+          high_controls_html = render_items(
+            all_controls.filter(function(item) {
+              return item['baselines'].includes('HIGH');
+          }));
+        }
+        document.getElementById("results_main").innerHTML = high_controls_html;
       }
-      document.getElementById("results_main").innerHTML = all_controls_html;
     }
 
     function display_items(items) {
@@ -151,8 +180,13 @@
 
   <div style="width:auto; height:auto; padding:0; margin:0; background-color:#3B7D5C; color: white; text-align: center;">Not affiliated with anyone (FedRAMP, FedRAMP PMO, GSA, NIST, US Gov).</div>
 
-  <div id="search_main">
-    <label for="search_field">Search NIST 800-53 (Rev. 4) and FedRAMP controls, or&nbsp;<a href="#" onclick="display_all_items(); return false;">show all</a>:</label>
+  <div id="search_main" style="margin-top:1rem;">
+    Show NIST 800-53 (Rev. 4) and FedRAMP controls for
+    <a href="#" onclick="display_baseline_items('all'); return false;">[all]</a>,
+    <a href="#" onclick="display_baseline_items('low'); return false;">[low]</a>,
+    <a href="#" onclick="display_baseline_items('moderate'); return false;">[moderate]</a>,
+    <a href="#" onclick="display_baseline_items('high'); return false;">[high]</a> baselines.
+    <label for="search_field" style="margin-top:0;">Search in controls:</label>
     <input type="text" id="search_field" name="search_field">
   </div>
   <div id="results_main">
