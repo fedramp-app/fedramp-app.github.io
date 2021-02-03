@@ -7,6 +7,10 @@
   margin-block-start: 0;
 }
 
+.withdrawn {
+  text-decoration: line-through;
+}
+
 /*! modern-normalize v0.6.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
 
 /*

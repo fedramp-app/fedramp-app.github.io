@@ -93,7 +93,11 @@
             baseline_tag.push('H');
           }
           var baseline_text = '[' + baseline_tag.join(',') + ']';
-          result_html += '<div><h5 class="control_family">'+item['family']+'</h5><h3 class="control_title">'+item['control_id']+' '+item['control_title']+' <small>'+baseline_text+'</small></h3></div>';
+          if ('withdrawn' in item && item['withdrawn'] == true) {
+            result_html += '<div><h5 class="control_family">'+item['family']+'</h5><h3 class="control_title"><span class="withdrawn">'+item['control_id']+' '+item['control_title']+'</span> <small>'+baseline_text+'</small></h3></div>';
+          } else {
+            result_html += '<div><h5 class="control_family">'+item['family']+'</h5><h3 class="control_title"><span>'+item['control_id']+' '+item['control_title']+'</span> <small>'+baseline_text+'</small></h3></div>';
+          }
           result_html += '<div><h4>Control</h4><blockquote><p>'+item['description']+'</p></blockquote></div>';
           if ('supplemental_guidance' in item) {
             result_html += '<div><h4>Supplemental Guidance</h4><blockquote><p>'+item['supplemental_guidance']+'</p></blockquote></div>';
