@@ -14,6 +14,7 @@
   <script src="fedramp-controls.js"></script>
   <script src="elasticlunr.js"></script>
   <script>
+    /* Configure elasticlunr instance */
     elasticlunr.Configuration.prototype.addAllFields2UserConfig = function (bool, expand, fields) {
       fields.forEach(function (field) {
         this.config[field] = {
@@ -73,8 +74,37 @@
       this.addField('search_corpus');
       this.setRef('index');
     });
-    all_controls.forEach(function(item) {index.addDoc(item);});
 
+    /* inline lookup helper */
+    var control_id_to_index_map = {};
+    all_controls.forEach(function(item) {
+      control_id_to_index_map[item['control_id']] = item['index'];
+    });
+    var control_pattern = /[A-Z][A-Z]-[0-9]+( \([0-9]+\))?/g;
+    function lookup_link_html(match) {
+      var control_id_index = control_id_to_index_map[match];
+      return '<a href="#" onclick="display_helper(all_controls[' + control_id_index + ']); return false;">' + match + '</a>';
+    };
+
+    all_controls.forEach(function(item) {
+      /* inline lookup helper */
+      item['description'] = item['description'].replace(control_pattern, lookup_link_html);
+      if ('supplemental_guidance' in item) {
+        item['supplemental_guidance'] = item['supplemental_guidance'].replace(control_pattern, lookup_link_html);
+      }
+      if (item['related'] && item['related'].length > 0) {
+        var new_related = [];
+        item['related'].forEach(function(item_related) {
+          new_related.push(item_related.replace(control_pattern, lookup_link_html));
+        });
+        item['related'] = new_related;
+      }
+
+      /* add to elasticlunr search */
+      index.addDoc(item);
+    });
+
+    /* HTML-ify */
     function render_items(items) {
       var result_html = '';
       items.forEach(
@@ -128,6 +158,7 @@
       return result_html;
     }
 
+    /* preset control groups */
     var all_controls_html = '';
     var low_controls_html = '';
     var moderate_controls_html = '';
@@ -173,6 +204,23 @@
       document.getElementById("results_main").innerHTML = '';
     }
 
+    /* inline lookup helper behavior */
+    var helper_template = '<div id="helper_close"><a href="#" onclick="hide_helper(); return false;">[ x ]</a>&nbsp;</div><div id="helper_body"></div>';
+    function display_helper(item) {
+      document.getElementById("helper_main").innerHTML = helper_template;
+      document.getElementById("helper_body").innerHTML = render_items([item]);
+      document.getElementById("helper_main").style.visibility = 'visible';
+      document.getElementById("helper_main").style.display = 'block';
+      document.getElementById("helper_main").scrollTop = 0;
+    }
+
+    function hide_helper() {
+      document.getElementById("helper_main").style.display = 'none';
+      document.getElementById("helper_main").style.visibility = 'hidden';
+      document.getElementById("helper_main").innerHTML = '';
+    }
+
+    /* elasticlunr search behavior */
     function do_search() {
       var query = document.getElementById("search_field").value;
       var result = index.search(query, {});
@@ -183,9 +231,9 @@
     }
   </script>
 
-  <div style="width:auto; height:auto; padding:0; margin:0; background-color:#3B7D5C; color: white; text-align: center;">Not affiliated with anyone (FedRAMP, FedRAMP PMO, GSA, NIST, US Gov).</div>
+  <div id="disclaimer">Not affiliated with anyone (FedRAMP, FedRAMP PMO, GSA, NIST, US Gov).</div>
 
-  <div id="search_main" style="margin-top:1rem;">
+  <div id="search_main">
     Show NIST 800-53 (Rev. 4) and FedRAMP controls for
     <a href="#" onclick="display_baseline_items('all'); return false;">[all]</a>,
     <a href="#" onclick="display_baseline_items('low'); return false;">[low]</a>,
@@ -196,9 +244,12 @@
   </div>
   <div id="results_main">
   </div>
+  <div id="helper_main">
+  </div>
 
   <script>
-    // Based on https://stackoverflow.com/a/5926782
+    /* real time search-as-you-type behavior */
+    /* Based on https://stackoverflow.com/a/5926782 */
     var typingTimer;
     var doneTypingInterval = 10;
     var myInput = document.getElementById('search_field');

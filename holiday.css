@@ -11,6 +11,57 @@
   text-decoration: line-through;
 }
 
+#disclaimer {
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  background-color: #3B7D5C;
+  color: white;
+  text-align: center;
+}
+
+#search_main {
+  margin-top: 1rem;
+}
+
+#helper_main {
+  z-index: 1;
+  height: 40%;
+  bottom: 0;
+  width: inherit;
+  max-width: var(--max-body-width);
+  margin: 0 auto;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: auto;
+  position: fixed;
+  background-color: inherit;
+  border: 2px solid #56AF82;
+  text-align: left;
+  display: none;
+  visibility: hidden;
+}
+
+#helper_close {
+  z-index: 2;
+  height: auto;
+  width: inherit;
+  max-width: var(--max-body-width);
+  top: 60%;
+  left: auto;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 1rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+  position: fixed;
+  text-align: right;
+}
+
 /*! modern-normalize v0.6.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
 
 /*
@@ -1067,7 +1118,8 @@ picture {
   --code-text-color: #f14668;
   --code-background-color: #f5f5f5;
   --link-color: #3273dc;
-  --link-visited-color: #b86bff;
+  /*--link-visited-color: #b86bff;*/
+  --link-visited-color: #3273dc;
   --link-hover-color: #363636;
   --link-active-color: #363636;
 }
@@ -1090,7 +1142,8 @@ picture {
     --code-text-color: #f1a0b0;
     --code-background-color: #292b2e;
     --link-color: #90b3ed;
-    --link-visited-color: #cb93ff;
+    /*--link-visited-color: #cb93ff;*/
+    --link-visited-color: #90b3ed;
     --link-hover-color: #fff;
     --link-active-color: #fff;
   }
