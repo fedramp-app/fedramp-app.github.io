@@ -110,16 +110,16 @@
       items.forEach(
         function(item) {
           var baseline_tag = [];
-          if (item['baselines'].length == 0) {
+          if (item['fedramp_baselines'].length == 0) {
             baseline_tag.push('No Baseline');
           }
-          if (item['baselines'].includes('LOW')) {
+          if (item['fedramp_baselines'].includes('LOW')) {
             baseline_tag.push('L');
           }
-          if (item['baselines'].includes('MODERATE')) {
+          if (item['fedramp_baselines'].includes('MODERATE')) {
             baseline_tag.push('M');
           }
-          if (item['baselines'].includes('HIGH')) {
+          if (item['fedramp_baselines'].includes('HIGH')) {
             baseline_tag.push('H');
           }
           var baseline_text = '[' + baseline_tag.join(',') + ']';
@@ -163,33 +163,33 @@
     var low_controls_html = '';
     var moderate_controls_html = '';
     var high_controls_html = '';
-    function display_baseline_items(baseline) {
-      if (baseline == '' || baseline == 'all') {
+    function display_fedramp_baseline_items(fedramp_baseline) {
+      if (fedramp_baseline == '' || fedramp_baseline == 'all') {
         if (all_controls_html == '') {
           all_controls_html = render_items(all_controls);
         }
         document.getElementById("results_main").innerHTML = all_controls_html;
-      } else if (baseline == 'low') {
+      } else if (fedramp_baseline == 'low') {
         if (low_controls_html == '') {
           low_controls_html = render_items(
             all_controls.filter(function(item) {
-              return item['baselines'].includes('LOW');
+              return item['fedramp_baselines'].includes('LOW');
           }));
         }
         document.getElementById("results_main").innerHTML = low_controls_html;
-      } else if (baseline == 'moderate') {
+      } else if (fedramp_baseline == 'moderate') {
         if (moderate_controls_html == '') {
           moderate_controls_html = render_items(
             all_controls.filter(function(item) {
-              return item['baselines'].includes('MODERATE');
+              return item['fedramp_baselines'].includes('MODERATE');
           }));
         }
         document.getElementById("results_main").innerHTML = moderate_controls_html;
-      } else if (baseline == 'high') {
+      } else if (fedramp_baseline == 'high') {
         if (high_controls_html == '') {
           high_controls_html = render_items(
             all_controls.filter(function(item) {
-              return item['baselines'].includes('HIGH');
+              return item['fedramp_baselines'].includes('HIGH');
           }));
         }
         document.getElementById("results_main").innerHTML = high_controls_html;
@@ -234,12 +234,12 @@
   <div id="disclaimer">Not affiliated with anyone (FedRAMP, FedRAMP PMO, GSA, NIST, US Gov).</div>
 
   <div id="search_main">
-    Show NIST 800-53 (Rev. 4) and FedRAMP controls for
-    <a href="#" onclick="display_baseline_items('all'); return false;">[all]</a>,
-    <a href="#" onclick="display_baseline_items('low'); return false;">[low]</a>,
-    <a href="#" onclick="display_baseline_items('moderate'); return false;">[moderate]</a>,
-    <a href="#" onclick="display_baseline_items('high'); return false;">[high]</a> baselines.
-    <label for="search_field" style="margin-top:0;">Search in controls:</label>
+    Show FedRAMP controls for
+    <a href="#" onclick="display_fedramp_baseline_items('all'); return false;">[all]</a>,
+    <a href="#" onclick="display_fedramp_baseline_items('low'); return false;">[low]</a>,
+    <a href="#" onclick="display_fedramp_baseline_items('moderate'); return false;">[moderate]</a>,
+    <a href="#" onclick="display_fedramp_baseline_items('high'); return false;">[high]</a> baselines.
+    <label for="search_field" style="margin-top:0;">Search in NIST 800-53 (Rev. 4) and FedRAMP controls:</label>
     <input type="text" id="search_field" name="search_field">
   </div>
   <div id="results_main">
