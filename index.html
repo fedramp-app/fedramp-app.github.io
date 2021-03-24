@@ -67,6 +67,7 @@
         this.addAllFields2UserConfig(global_bool, global_expand, fields);
       }
     };
+    elasticlunr.clearStopWords();
     var index = elasticlunr(function () {
       this.addField('search_supertitle');
       this.addField('search_title');
