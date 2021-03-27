@@ -14,7 +14,9 @@
   <script src="fedramp-controls.js"></script>
   <script src="elasticlunr.js"></script>
   <script>
-    /* Configure elasticlunr instance */
+    /* Configure elasticlunr instance
+    ** Note this overrides some native functions
+    */
     elasticlunr.Configuration.prototype.addAllFields2UserConfig = function (bool, expand, fields) {
       fields.forEach(function (field) {
         this.config[field] = {
@@ -23,8 +25,8 @@
           expand: expand
         };
       }, this);
-      this.config['search_supertitle'] = {boost: 8, bool: "AND", expand: expand};
-      this.config['search_title'] = {boost: 4, bool: "AND", expand: expand};
+      this.config['search_supertitle'] = {boost: 8, bool: "AND", expand: true};
+      this.config['search_title'] = {boost: 4, bool: "AND", expand: true};
       this.config['search_supercorpus'] = {boost: 2, bool: "AND", expand: expand};
       this.config['search_corpus'] = {boost: 1, bool: "AND", expand: expand};
     };
@@ -59,15 +61,45 @@
             elasticlunr.utils.warn('field name in user configuration not found in index instance fields');
           }
         }
-        this.config['search_supertitle'] = {boost: 8, bool: "AND", expand: global_expand};
-        this.config['search_title'] = {boost: 4, bool: "AND", expand: global_expand};
+        this.config['search_supertitle'] = {boost: 8, bool: "AND", expand: true};
+        this.config['search_title'] = {boost: 4, bool: "AND", expand: true};
         this.config['search_supercorpus'] = {boost: 2, bool: "AND", expand: global_expand};
         this.config['search_corpus'] = {boost: 1, bool: "AND", expand: global_expand};
       } else {
         this.addAllFields2UserConfig(global_bool, global_expand, fields);
       }
     };
+    elasticlunr.tokenizer = function (str) {
+      if (!arguments.length || str === null || str === undefined) return [];
+      if (!Array.isArray(str)) {
+        str = [str.toString().trim().toLowerCase()];
+      }
+      if (Array.isArray(str)) {
+        var arr = str.filter(function(token) {
+          if (token === null || token === undefined) {
+            return false;
+          }
+
+          return true;
+        });
+
+        arr = arr.map(function (t) {
+          return elasticlunr.utils.toString(t).toLowerCase();
+        });
+
+        var out = [];
+        arr.forEach(function(item) {
+          var tokens = item.split(/([a-zA-Z][a-zA-Z]-[0-9]+)|[\s\-]+/);
+          tokens = tokens.filter(word => typeof word !== "undefined");
+          tokens = tokens.filter(word => word.length > 0);
+          out = out.concat(tokens);
+        }, this);
+      }
+      return out;
+    };
     elasticlunr.clearStopWords();
+
+    /* Instantiate elasticlunr instance */
     var index = elasticlunr(function () {
       this.addField('search_supertitle');
       this.addField('search_title');
