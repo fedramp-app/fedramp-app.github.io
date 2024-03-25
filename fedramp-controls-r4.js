@@ -6283,12 +6283,12 @@ var all_controls = [
     "control_ref": "cp-10.3",
     "control_title": "COMPENSATING SECURITY CONTROLS",
     "index": 326,
-    "description": "[Withdrawn: Addressed through tailoring procedures].",
+    "description": "[Withdrawn]",
     "fedramp_baselines": [],
     "search_supertitle": "",
     "search_title": "contingency planning cp-10 (3) compensating security controls",
-    "search_supercorpus": "contingency planning cp-10 (3) compensating security controls [withdrawn: addressed through tailoring procedures].",
-    "search_corpus": "contingency planning cp-10 (3) compensating security controls [withdrawn: addressed through tailoring procedures]."
+    "search_supercorpus": "contingency planning cp-10 (3) compensating security controls [withdrawn]",
+    "search_corpus": "contingency planning cp-10 (3) compensating security controls [withdrawn]"
   },
   {
     "family": "CONTINGENCY PLANNING",
@@ -10329,12 +10329,12 @@ var all_controls = [
     "control_ref": "pl-5",
     "control_title": "PRIVACY IMPACT ASSESSMENT",
     "index": 542,
-    "description": "[Withdrawn: Addressed through tailoring procedures].",
+    "description": "[Withdrawn]",
     "fedramp_baselines": [],
     "search_supertitle": "planning pl-5 privacy impact assessment",
     "search_title": "planning pl-5 privacy impact assessment",
-    "search_supercorpus": "planning pl-5 privacy impact assessment [withdrawn: addressed through tailoring procedures].",
-    "search_corpus": "planning pl-5 privacy impact assessment [withdrawn: addressed through tailoring procedures]."
+    "search_supercorpus": "planning pl-5 privacy impact assessment [withdrawn]",
+    "search_corpus": "planning pl-5 privacy impact assessment [withdrawn]"
   },
   {
     "withdrawn": true,

@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>FedRAMP Controls Search</title>
+  <meta name="description" content="View NIST 800-53 and FedRAMP controls by baseline or search by keyword.">
+  <meta name="keywords" content="FedRAMP, FISMA, FedRAMP Low, FedRAMP Li-SaaS, FedRAMP Moderate, FedRAMP High, NIST, NIST 800-53, NIST SP 800-53, NIST 800-53r4, NIST 800-53r5, rev 4, rev 5">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="holiday.css">
+</head>
+
+<body>
+  <script src="fedramp-controls-r4.js"></script>
+  <script src="elasticlunr.js"></script>
+  <script>
+    /* Configure elasticlunr instance
+    ** Note this overrides some native functions
+    */
+    elasticlunr.Configuration.prototype.addAllFields2UserConfig = function (bool, expand, fields) {
+      fields.forEach(function (field) {
+        this.config[field] = {
+          boost: 1,
+          bool: bool,
+          expand: expand
+        };
+      }, this);
+      this.config['search_supertitle'] = {boost: 8, bool: "AND", expand: true};
+      this.config['search_title'] = {boost: 4, bool: "AND", expand: true};
+      this.config['search_supercorpus'] = {boost: 2, bool: "AND", expand: expand};
+      this.config['search_corpus'] = {boost: 1, bool: "AND", expand: expand};
+    };
+    elasticlunr.Configuration.prototype.buildUserConfig = function (config, fields) {
+      var global_bool = "AND";
+      var global_expand = false;
+
+      this.reset();
+      if ('bool' in config) {
+        global_bool = config['bool'] || global_bool;
+      }
+
+      if ('expand' in config) {
+        global_expand = config['expand'] || global_expand;
+      }
+
+      if ('fields' in config) {
+        for (var field in config['fields']) {
+          if (fields.indexOf(field) > -1) {
+            var field_config = config['fields'][field];
+            var field_expand = global_expand;
+            if (field_config.expand != undefined) {
+              field_expand = field_config.expand;
+            }
+
+            this.config[field] = {
+              boost: (field_config.boost || field_config.boost === 0) ? field_config.boost : 1,
+              bool: field_config.bool || global_bool,
+              expand: field_expand
+            };
+          } else {
+            elasticlunr.utils.warn('field name in user configuration not found in index instance fields');
+          }
+        }
+        this.config['search_supertitle'] = {boost: 8, bool: "AND", expand: true};
+        this.config['search_title'] = {boost: 4, bool: "AND", expand: true};
+        this.config['search_supercorpus'] = {boost: 2, bool: "AND", expand: global_expand};
+        this.config['search_corpus'] = {boost: 1, bool: "AND", expand: global_expand};
+      } else {
+        this.addAllFields2UserConfig(global_bool, global_expand, fields);
+      }
+    };
+    elasticlunr.tokenizer = function (str) {
+      if (!arguments.length || str === null || str === undefined) return [];
+      if (!Array.isArray(str)) {
+        str = [str.toString().trim().toLowerCase()];
+      }
+      if (Array.isArray(str)) {
+        var arr = str.filter(function(token) {
+          if (token === null || token === undefined) {
+            return false;
+          }
+
+          return true;
+        });
+
+        arr = arr.map(function (t) {
+          return elasticlunr.utils.toString(t).toLowerCase();
+        });
+
+        var out = [];
+        arr.forEach(function(item) {
+          var tokens = item.split(/([a-zA-Z][a-zA-Z]-[0-9]+)|[\s\-]+/);
+          tokens = tokens.filter(word => typeof word !== "undefined");
+          tokens = tokens.filter(word => word.length > 0);
+          out = out.concat(tokens);
+        }, this);
+      }
+      return out;
+    };
+    elasticlunr.clearStopWords();
+
+    /* Instantiate elasticlunr instance */
+    var index = elasticlunr(function () {
+      this.addField('search_supertitle');
+      this.addField('search_title');
+      this.addField('search_supercorpus');
+      this.addField('search_corpus');
+      this.setRef('index');
+    });
+
+    /* inline lookup helper */
+    var control_id_to_index_map = {};
+    all_controls.forEach(function(item) {
+      control_id_to_index_map[item['control_id']] = item['index'];
+    });
+    var control_pattern = /[A-Z][A-Z]-[0-9]+( \([0-9]+\))?/g;
+    function lookup_link_html(match) {
+      var control_id_index = control_id_to_index_map[match];
+      return '<a href="#" onclick="display_helper(all_controls[' + control_id_index + ']); return false;">' + match + '</a>';
+    };
+
+    all_controls.forEach(function(item) {
+      /* inline lookup helper */
+      item['description'] = item['description'].replace(control_pattern, lookup_link_html);
+      if ('supplemental_guidance' in item) {
+        item['supplemental_guidance'] = item['supplemental_guidance'].replace(control_pattern, lookup_link_html);
+      }
+      if (item['related'] && item['related'].length > 0) {
+        var new_related = [];
+        item['related'].forEach(function(item_related) {
+          new_related.push(item_related.replace(control_pattern, lookup_link_html));
+        });
+        item['related'] = new_related;
+      }
+
+      /* add to elasticlunr search */
+      index.addDoc(item);
+    });
+
+    /* HTML-ify */
+    function render_items(items) {
+      var result_html = '';
+      items.forEach(
+        function(item) {
+          var baseline_tag = [];
+          if (item['fedramp_baselines'].length == 0) {
+            baseline_tag.push('No Baseline');
+          }
+          if (item['fedramp_baselines'].includes('LOW')) {
+            baseline_tag.push('L');
+          }
+          if (item['fedramp_baselines'].includes('MODERATE')) {
+            baseline_tag.push('M');
+          }
+          if (item['fedramp_baselines'].includes('HIGH')) {
+            baseline_tag.push('H');
+          }
+          var baseline_text = '[' + baseline_tag.join(',') + ']';
+          if ('withdrawn' in item && item['withdrawn'] == true) {
+            result_html += '<div><h5 class="control_family">'+item['family']+'</h5><h3 class="control_title"><span class="withdrawn">'+item['control_id']+' '+item['control_title']+'</span> <small>'+baseline_text+'</small></h3></div>';
+          } else {
+            result_html += '<div><h5 class="control_family">'+item['family']+'</h5><h3 class="control_title"><span>'+item['control_id']+' '+item['control_title']+'</span> <small>'+baseline_text+'</small></h3></div>';
+          }
+          result_html += '<div><h4>Control</h4><blockquote><p>'+item['description']+'</p></blockquote></div>';
+          if ('supplemental_guidance' in item) {
+            result_html += '<div><h4>Supplemental Guidance</h4><blockquote><p>'+item['supplemental_guidance']+'</p></blockquote></div>';
+          }
+          if ('fedramp_low_parameter' in item) {
+            result_html += '<div><h4>FedRAMP-Defined Parameter, Low</h4><p>'+item['fedramp_low_parameter']+'</p></div>';
+          }
+          if ('fedramp_low_additional' in item) {
+            result_html += '<div><h4>Additional FedRAMP Requirements and Guidance, Low</h4><p>'+item['fedramp_low_additional']+'</p></div>';
+          }
+          if ('fedramp_moderate_parameter' in item) {
+            result_html += '<div><h4>FedRAMP-Defined Parameter, Moderate</h4><p>'+item['fedramp_moderate_parameter']+'</p></div>';
+          }
+          if ('fedramp_moderate_additional' in item) {
+            result_html += '<div><h4>Additional FedRAMP Requirements and Guidance, Moderate</h4><p>'+item['fedramp_moderate_additional']+'</p></div>';
+          }
+          if ('fedramp_high_parameter' in item) {
+            result_html += '<div><h4>FedRAMP-Defined Parameter, High</h4><p>'+item['fedramp_high_parameter']+'</p></div>';
+          }
+          if ('fedramp_high_additional' in item) {
+            result_html += '<div><h4>Additional FedRAMP Requirements and Guidance, High</h4><p>'+item['fedramp_high_additional']+'</p></div>';
+          }
+          if (item['related'] && item['related'].length > 0) {
+            result_html += '<div><h4>Related</h4><p>'+item['related'].join(', ')+'</p></div>';
+          }
+          result_html += '<hr>';
+      });
+      return result_html;
+    }
+
+    /* preset control groups */
+    var all_controls_html = '';
+    var low_controls_html = '';
+    var moderate_controls_html = '';
+    var high_controls_html = '';
+    function display_fedramp_baseline_items(fedramp_baseline) {
+      if (fedramp_baseline == '' || fedramp_baseline == 'all') {
+        if (all_controls_html == '') {
+          all_controls_html = render_items(all_controls);
+        }
+        document.getElementById("results_main").innerHTML = all_controls_html;
+      } else if (fedramp_baseline == 'low') {
+        if (low_controls_html == '') {
+          low_controls_html = render_items(
+            all_controls.filter(function(item) {
+              return item['fedramp_baselines'].includes('LOW');
+          }));
+        }
+        document.getElementById("results_main").innerHTML = low_controls_html;
+      } else if (fedramp_baseline == 'moderate') {
+        if (moderate_controls_html == '') {
+          moderate_controls_html = render_items(
+            all_controls.filter(function(item) {
+              return item['fedramp_baselines'].includes('MODERATE');
+          }));
+        }
+        document.getElementById("results_main").innerHTML = moderate_controls_html;
+      } else if (fedramp_baseline == 'high') {
+        if (high_controls_html == '') {
+          high_controls_html = render_items(
+            all_controls.filter(function(item) {
+              return item['fedramp_baselines'].includes('HIGH');
+          }));
+        }
+        document.getElementById("results_main").innerHTML = high_controls_html;
+      }
+    }
+
+    function display_items(items) {
+      document.getElementById("results_main").innerHTML = render_items(items);
+    }
+
+    function display_none() {
+      document.getElementById("results_main").innerHTML = '';
+    }
+
+    /* inline lookup helper behavior */
+    var helper_template = '<div id="helper_close"><a href="#" onclick="hide_helper(); return false;">[ x ]</a>&nbsp;</div><div id="helper_body"></div>';
+    function display_helper(item) {
+      document.getElementById("helper_main").innerHTML = helper_template;
+      document.getElementById("helper_body").innerHTML = render_items([item]);
+      document.getElementById("helper_main").style.visibility = 'visible';
+      document.getElementById("helper_main").style.display = 'block';
+      document.getElementById("helper_main").scrollTop = 0;
+    }
+
+    function hide_helper() {
+      document.getElementById("helper_main").style.display = 'none';
+      document.getElementById("helper_main").style.visibility = 'hidden';
+      document.getElementById("helper_main").innerHTML = '';
+    }
+
+    /* elasticlunr search behavior */
+    function do_search() {
+      var query = document.getElementById("search_field").value;
+      var result = index.search(query, {});
+      result.sort(function(a, b) {return (b.score - a.score);});
+      display_items(result.map(function(ref_item) {
+        return all_controls[ref_item['ref']];
+      }))
+    }
+  </script>
+
+  <div id="disclaimer">Not affiliated with anyone (FedRAMP, FedRAMP PMO, GSA, NIST, US Gov).</div>
+
+  <div id="search_main">
+    Show controls for
+    <a href="#" onclick="display_fedramp_baseline_items('all'); return false;">[all]</a>,
+    <a href="#" onclick="display_fedramp_baseline_items('low'); return false;">[low]</a>,
+    <a href="#" onclick="display_fedramp_baseline_items('moderate'); return false;">[moderate]</a>,
+    <a href="#" onclick="display_fedramp_baseline_items('high'); return false;">[high]</a> FedRAMP Rev 4 baselines.
+    <label for="search_field" style="margin-top:0;">Search in NIST 800-53 and FedRAMP Rev 4 controls:</label>
+    <input type="text" id="search_field" name="search_field">
+  </div>
+  <div id="results_main">
+  </div>
+  <div id="helper_main">
+  </div>
+
+  <script>
+    /* real time search-as-you-type behavior */
+    /* Based on https://stackoverflow.com/a/5926782 */
+    var typingTimer;
+    var doneTypingInterval = 10;
+    var myInput = document.getElementById('search_field');
+
+    myInput.addEventListener('keyup', () => {
+        if (myInput.value) {
+          typingTimer = do_search();
+        } else {
+          display_none();
+        }
+    });
+  </script>
+  <script data-goatcounter="https://fedramp.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
